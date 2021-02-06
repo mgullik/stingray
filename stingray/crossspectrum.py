@@ -132,6 +132,8 @@ def normalize_crossspectrum_new(
     >>> norm = normalize_crossspectrum_new(pds, np.mean(lc), lc_var, 0.1, len(lc), norm='leahy')
     >>> np.allclose(norm, norm_c)
     True
+    >>> np.isclose(np.mean(norm[1:]), 2, atol=0.1)
+    True
     >>> norm_c = normalize_crossspectrum_new(pds_c, np.mean(lc_c), np.mean(lc_c), 0.1, len(lc_c), norm='frac')
     >>> norm = normalize_crossspectrum_new(pds, np.mean(lc), lc_var, 0.1, len(lc), norm='frac')
     >>> np.allclose(norm, norm_c)
@@ -153,14 +155,17 @@ def normalize_crossspectrum_new(
     else:
         raise ValueError("`power_type` not recognized!")
 
+    common_factor = 2 * dt / N
+    rate_mean = mean_flux * dt
+    rate_var = var * dt
     if norm.lower() == 'leahy':
-        norm = 2 * dt / var / N
+        norm = common_factor / rate_var
 
     elif norm.lower() == 'frac':
-        norm = 2 * dt / mean_flux**2 / N
+        norm = common_factor / rate_mean**2
 
     elif norm.lower() == 'abs':
-        norm = 2 * dt / N
+        norm = common_factor
 
     elif norm.lower() == 'none':
         norm = 1
