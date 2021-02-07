@@ -100,7 +100,7 @@ def normalize_crossspectrum(unnorm_power, tseg, nbins, nphots1, nphots2, norm="n
     return power
 
 
-def normalize_crossspectrum_new(
+def normalize_crossspectrum_gauss(
         unnorm_power, mean_flux, var, dt, N, norm="none", power_type="real"):
     """
     Normalize the real part of the cross spectrum to Leahy, absolute rms^2,
@@ -128,19 +128,21 @@ def normalize_crossspectrum_new(
     >>> lc_var = (100 / 17.3453)**2
     >>> pds_c = np.absolute(np.fft.fft(lc_c))**2
     >>> pds = np.absolute(np.fft.fft(lc))**2
-    >>> norm_c = normalize_crossspectrum_new(pds_c, np.mean(lc_c), lc_c_var, 0.1, len(lc_c), norm='leahy')
-    >>> norm = normalize_crossspectrum_new(pds, np.mean(lc), lc_var, 0.1, len(lc), norm='leahy')
+    >>> norm_c = normalize_crossspectrum_gauss(pds_c, np.mean(lc_c), lc_c_var, 0.1, len(lc_c), norm='leahy')
+    >>> norm = normalize_crossspectrum_gauss(pds, np.mean(lc), lc_var, 0.1, len(lc), norm='leahy')
     >>> np.allclose(norm, norm_c)
     True
     >>> np.isclose(np.mean(norm[1:]), 2, atol=0.1)
     True
-    >>> norm_c = normalize_crossspectrum_new(pds_c, np.mean(lc_c), np.mean(lc_c), 0.1, len(lc_c), norm='frac')
-    >>> norm = normalize_crossspectrum_new(pds, np.mean(lc), lc_var, 0.1, len(lc), norm='frac')
+    >>> norm_c = normalize_crossspectrum_gauss(pds_c, np.mean(lc_c), np.mean(lc_c), 0.1, len(lc_c), norm='frac')
+    >>> norm = normalize_crossspectrum_gauss(pds, np.mean(lc), lc_var, 0.1, len(lc), norm='frac')
     >>> np.allclose(norm, norm_c)
     True
-    >>> norm_c = normalize_crossspectrum_new(pds_c, np.mean(lc_c), np.mean(lc_c), 0.1, len(lc_c), norm='abs')
-    >>> norm = normalize_crossspectrum_new(pds, np.mean(lc), lc_var, 0.1, len(lc), norm='abs')
+    >>> norm_c = normalize_crossspectrum_gauss(pds_c, np.mean(lc_c), np.mean(lc_c), 0.1, len(lc_c), norm='abs')
+    >>> norm = normalize_crossspectrum_gauss(pds, np.mean(lc), lc_var, 0.1, len(lc), norm='abs')
     >>> np.allclose(norm / np.mean(lc)**2, norm_c / np.mean(lc_c)**2)
+    True
+    >>> np.isclose(np.mean(norm_c[2:]), 2 * np.mean(lc_c * 0.1), rtol=0.1)
     True
     """
 
@@ -157,9 +159,8 @@ def normalize_crossspectrum_new(
 
     common_factor = 2 * dt / N
     rate_mean = mean_flux * dt
-    rate_var = var * dt
     if norm.lower() == 'leahy':
-        norm = common_factor / rate_var
+        norm = 2 / var / N
 
     elif norm.lower() == 'frac':
         norm = common_factor / rate_mean**2
@@ -581,17 +582,18 @@ class Crossspectrum(object):
         self.nphots1 = np.float64(np.sum(lc1.counts))
         self.nphots2 = np.float64(np.sum(lc2.counts))
 
+        self.err_dist = 'poisson'
         if lc1.err_dist == 'poisson':
             self.var1 = lc1.meancounts
         else:
             self.var1 = np.mean(lc1.counts_err) ** 2
+            self.err_dist = 'gauss'
 
         if lc2.err_dist == 'poisson':
             self.var2 = lc2.meancounts
         else:
             self.var2 = np.mean(lc2.counts_err) ** 2
-        # print(lc2.meancounts, self.var2, np.var(lc2.counts))
-        # the number of data points in the light curve
+            self.err_dist = 'gauss'
 
         if lc1.n != lc2.n:
             raise StingrayError("Light curves do not have same number "
@@ -781,16 +783,18 @@ class Crossspectrum(object):
             'none' normalization, imaginary part is returned as well.
         """
 
-        return normalize_crossspectrum_new(
+        if self.err_dist == 'poisson':
+            return normalize_crossspectrum(
+                unnorm_power, tseg, self.n, self.nphots1, self.nphots2, self.norm,
+                self.power_type)
+
+        return normalize_crossspectrum_gauss(
             unnorm_power, np.sqrt(self.meancounts1 * self.meancounts1),
             np.sqrt(self.var1 * self.var2),
             dt=self.dt,
             N=self.n,
             norm=self.norm,
             power_type=self.power_type)
-        # return normalize_crossspectrum(
-        #     unnorm_power, tseg, self.n, self.nphots1, self.nphots2, self.norm,
-        #     self.power_type)
 
     def rebin_log(self, f=0.01):
         """
