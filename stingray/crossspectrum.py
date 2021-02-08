@@ -47,6 +47,25 @@ def normalize_crossspectrum(unnorm_power, tseg, nbins, nphots1, nphots2, norm="n
     tseg: int
         The length of the Fourier segment, in seconds.
 
+    nbins : int
+        Number of bins in the light curve
+
+    nphots1 : int
+        Number of photons in the light curve no. 1
+
+    nphots2 : int
+        Number of photons in the light curve no. 2
+
+    Other parameters
+    ----------------
+    norm : str
+        One of `'leahy'` (Leahy+83), `'frac'` (fractional rms), `'abs'`
+        (absolute rms)
+
+    power_type : str
+        One of `'real'` (real part), `'all'` (all complex powers), `'abs'`
+        (absolute value)
+
     Returns
     -------
     power: numpy.nd.array
@@ -111,8 +130,29 @@ def normalize_crossspectrum_gauss(
     unnorm_power: numpy.ndarray
         The unnormalized cross spectrum.
 
-    tseg: int
-        The length of the Fourier segment, in seconds.
+    mean_flux: float
+        The mean flux of the light curve (if a cross spectrum, the geometrical
+        mean of the flux in the two channels)
+
+    var: float
+        The variance of the light curve (if a cross spectrum, the geometrical
+        mean of the variance in the two channels)
+
+    dt: float
+        The sampling time of the light curve
+
+    N: int
+        The number of bins in the light curve
+
+    Other parameters
+    ----------------
+    norm : str
+        One of `'leahy'` (Leahy+83), `'frac'` (fractional rms), `'abs'`
+        (absolute rms)
+
+    power_type : str
+        One of `'real'` (real part), `'all'` (all complex powers), `'abs'`
+        (absolute value)
 
     Returns
     -------
@@ -789,7 +829,7 @@ class Crossspectrum(object):
                 self.power_type)
 
         return normalize_crossspectrum_gauss(
-            unnorm_power, np.sqrt(self.meancounts1 * self.meancounts1),
+            unnorm_power, np.sqrt(self.meancounts1 * self.meancounts2),
             np.sqrt(self.var1 * self.var2),
             dt=self.dt,
             N=self.n,
