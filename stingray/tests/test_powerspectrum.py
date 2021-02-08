@@ -689,7 +689,7 @@ class TestDynamicalPowerspectrum(object):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", category=UserWarning)
 
-            lc = Lightcurve(timestamps, signal, err_dist='gauss',
+            lc = Lightcurve(timestamps, signal, err_dist='poisson',
                             dt=dt, gti=[[1 - dt/2, 100 + dt/2]])
         cls.lc = lc
 
