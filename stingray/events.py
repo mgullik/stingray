@@ -396,6 +396,12 @@ class EventList(object):
             else:
                 ev_new.gti = cross_gtis([self.gti, other.gti])
 
+        for attr in ['mission', 'instr']:
+            if getattr(self, attr) != getattr(other, attr):
+                setattr(ev_new, attr, getattr(self, attr) + ',' + getattr(other, attr))
+            else:
+                setattr(ev_new, attr, getattr(self, attr))
+
         ev_new.mjdref = self.mjdref
 
         return ev_new
@@ -496,7 +502,7 @@ class EventList(object):
             new_ev = self
         else:
             new_ev = copy.deepcopy(self)
-        for attr in 'time', 'energy', 'pi':
+        for attr in 'time', 'energy', 'pi', 'cal_pi':
             if hasattr(new_ev, attr):
                 setattr(new_ev, attr, getattr(new_ev, attr)[mask])
         return new_ev
