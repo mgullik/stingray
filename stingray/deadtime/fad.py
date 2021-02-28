@@ -221,13 +221,12 @@ def calculate_FAD_correction(lc1, lc2, segment_size, norm="none", gti=None,
 
         power1 = normalize_crossspectrum(p1, segment_size, nbins1, nph1,
                                          nph1, norm=norm)
-
         power2 = normalize_crossspectrum(p2, segment_size, nbins2, nph2,
                                          nph2, norm=norm)
         power_tot = normalize_crossspectrum(pt, segment_size, nbinstot, nphtot,
-                                         nphtot, norm=norm)
+                                            nphtot, norm=norm)
         cs_power = normalize_crossspectrum(c, segment_size, nbins1, nph1,
-                                         nph2, norm=norm)
+                                           nph2, norm=norm)
 
         if n == 0 and plot:
             ax.plot(freq, smooth_real, zorder=10, lw=3)

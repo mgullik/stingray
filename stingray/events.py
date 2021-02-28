@@ -447,7 +447,8 @@ class EventList(object):
 
         if format_ in ('hea'):
             evtdata = load_events_and_gtis(filename, **kwargs)
-            return EventList(time=evtdata.ev_list,
+
+            evt =  EventList(time=evtdata.ev_list,
                              gti=evtdata.gti_list,
                              pi=evtdata.pi_list,
                              energy=evtdata.energy_list,
@@ -456,6 +457,11 @@ class EventList(object):
                              mission=evtdata.mission,
                              header=evtdata.header,
                              detector_id=evtdata.detector_id)
+            if 'additional_columns' in kwargs:
+                for key in evtdata.additional_data:
+                    if not hasattr(evt, key.lower()):
+                        setattr(evt, key.lower(), evtdata.additional_data[key])
+            return evt
 
         if format_ == 'ascii':
             format_ = 'ascii.ecsv'
