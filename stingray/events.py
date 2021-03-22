@@ -509,7 +509,7 @@ class EventList(object):
         else:
             new_ev = copy.deepcopy(self)
         for attr in 'time', 'energy', 'pi', 'cal_pi':
-            if hasattr(new_ev, attr):
+            if hasattr(new_ev, attr) and getattr(new_ev, attr) is not None:
                 setattr(new_ev, attr, getattr(new_ev, attr)[mask])
         return new_ev
 
