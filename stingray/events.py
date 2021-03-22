@@ -448,15 +448,15 @@ class EventList(object):
         if format_ in ('hea'):
             evtdata = load_events_and_gtis(filename, **kwargs)
 
-            evt =  EventList(time=evtdata.ev_list,
-                             gti=evtdata.gti_list,
-                             pi=evtdata.pi_list,
-                             energy=evtdata.energy_list,
-                             mjdref=evtdata.mjdref,
-                             instr=evtdata.instr,
-                             mission=evtdata.mission,
-                             header=evtdata.header,
-                             detector_id=evtdata.detector_id)
+            evt = EventList(time=evtdata.ev_list,
+                            gti=evtdata.gti_list,
+                            pi=evtdata.pi_list,
+                            energy=evtdata.energy_list,
+                            mjdref=evtdata.mjdref,
+                            instr=evtdata.instr,
+                            mission=evtdata.mission,
+                            header=evtdata.header,
+                            detector_id=evtdata.detector_id)
             if 'additional_columns' in kwargs:
                 for key in evtdata.additional_data:
                     if not hasattr(evt, key.lower()):
