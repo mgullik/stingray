@@ -504,6 +504,20 @@ class EventList(object):
             ts.write(filename, format=format_, overwrite=True)
 
     def apply_mask(self, mask, inplace=False):
+        """Apply mask to all same-length list-like event attributes.
+
+        Examples
+        --------
+        >>> evt = EventList(time=[0, 1, 2])
+        >>> newev0 = evt.apply_mask([True, True, False], inplace=False);
+        >>> newev1 = evt.apply_mask([True, True, False], inplace=True);
+        >>> np.allclose(newev0.time, [0, 1])
+        True
+        >>> np.allclose(newev1.time, [0, 1])
+        True
+        >>> evt is newev1
+        True
+        """
         if inplace:
             new_ev = self
         else:
