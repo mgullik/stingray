@@ -157,7 +157,7 @@ class TestRMSEnergySpectrum(object):
         assert np.allclose(self.rms.spectrum, 0.2, 0.05)
 
     def test_correct_rms_errorbars(self):
-        assert np.allclose(self.rms.spectrum_error, 0.0028, atol=0.0001)
+        assert np.allclose(self.rms.spectrum_error, 0.0028, atol=0.0002)
 
     def test_rms_invalid_evlist_warns(self):
         ev = EventList(time=[], energy=[], gti=self.rms.events1.gti)
