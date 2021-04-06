@@ -95,21 +95,21 @@ def simulate_times_from_count_array(time, counts, gti, dt, use_spline=False):
 
     Examples
     --------
-    >>> t = [0.5, 1.5, 3.5]
-    >>> c = [100] * 3
-    >>> gti = [[0, 2], [3, 4]]
+    >>> t = [0.5, 1.5, 2.5, 3.5, 5.5]
+    >>> c = [100] * 5
+    >>> gti = [[0, 4], [5, 6]]
     >>> times = simulate_times_from_count_array(t, c, gti, 1, use_spline=True)
     >>> np.all(np.diff(times) > 0)  # Output array is sorted
     True
     >>> np.all(times >= 0.)  # All times inside GTIs
     True
-    >>> np.all(times <= 4.)
+    >>> np.all(times <= 6.)
     True
-    >>> np.any(times > 3.)
+    >>> np.any(times > 5.)
     True
-    >>> np.any(times < 2.)
+    >>> np.any(times < 4.)
     True
-    >>> np.any((times > 2.) & (times < 3.))  # No times outside GTIs
+    >>> np.any((times > 4.) & (times < 5.))  # No times outside GTIs
     False
     >>> c[0] = -3.
     >>> simulate_times_from_count_array(t, c, gti, 1)  # Test with one negative value in the lc
@@ -121,7 +121,7 @@ def simulate_times_from_count_array(time, counts, gti, dt, use_spline=False):
     counts = np.asarray(counts)
     gti = np.asarray(gti)
     kind = "linear"
-    if use_spline:
+    if use_spline and time.size > 2:
         kind = "cubic"
 
     if np.any(counts < 0):
@@ -157,16 +157,9 @@ def simulate_times_from_count_array(time, counts, gti, dt, use_spline=False):
     phase_bins /= duration
     dph = dt / duration
 
-    N = 10
-    counts = counts
-    # The concatenation below is needed because, when making the cubic
-    # interpolation, this helps flattening the solution at the start and end of
-    # each GTI.
-    counts = np.concatenate(([counts[0] / N] * N, counts[1:-1], [counts[-1] / N] * N))
+    counts = np.concatenate(([0], counts))
     phase_bins = np.concatenate(
-        (np.linspace(0, phase_bins[0] + dph / 2, N + 1)[:-1],
-         phase_bins[1:-1],
-         np.linspace(phase_bins[-1] - dph / 2, 1, N + 1)[:-1]))
+        ([0], phase_bins + dph / 2))
     n_events_predict = np.random.poisson(np.sum(counts))
 
     cdf = np.cumsum(counts, dtype=float)

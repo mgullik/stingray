@@ -20,7 +20,8 @@ class TestSimulator(object):
         times = simulate_times(lc)
         lc_sim = Lightcurve.make_lightcurve(times, gti=lc.gti, dt=lc.dt,
                                             tstart=lc.tstart, tseg=lc.tseg)
-        assert np.all((lc - lc_sim).counts < 3 * np.sqrt(lc.counts))
+        print((lc - lc_sim).counts)
+        assert np.all(np.abs((lc - lc_sim).counts) < 3 * np.sqrt(lc.counts))
 
     def test_simulate_times_with_spline(self):
         """Simulate photon arrival times, with use_spline option
