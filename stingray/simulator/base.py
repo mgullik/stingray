@@ -1,14 +1,24 @@
-
 import numpy as np
 import numpy.random as ra
 import scipy.interpolate as sci
-from ..utils import assign_value_if_none
+from stingray import Lightcurve
+from stingray.gti import gti_border_bins
 
 
-def simulate_times(lc, use_spline=False, bin_time=None):
+def simulate_times(lc, use_spline=False):
     """
-    Assign (simulate) photon arrival times to event list, using the
-    acceptance-rejection method.
+    Simulate an event list, by using the inverse CDF method:
+
+    + Assume that the light curve is a probability density (must be positive
+      definite)
+
+    + Calculate the CDF from the cumulative sum, and normalize it from 0 to 1
+
+    + Extract N random probability values from 0 to 1
+
+    + Find the CDF values corresponding to these N values
+
+    + Find the times corresponding to these N CDF values
 
     Parameters
     ----------
@@ -18,87 +28,159 @@ def simulate_times(lc, use_spline=False, bin_time=None):
     ----------------
     use_spline : bool
         Approximate the light curve with a spline to avoid binning effects
-    bin_time : float
-        The bin time of the light curve, if it needs to be specified for
-        improved precision
 
     Returns
     -------
     times : array-like
         Simulated photon arrival times
+
+    Examples
+    --------
+    >>> t = [0.5, 1.5, 3.5]
+    >>> c = [100] * 3
+    >>> lc = Lightcurve(t, c, gti=[[0, 2], [3, 4]], dt=1.)
+    >>> times = simulate_times(lc, use_spline=True)
+    >>> np.all(np.diff(times) > 0)  # Output array is sorted
+    True
+    >>> np.all(times >= 0.)  # All times inside GTIs
+    True
+    >>> np.all(times <= 4.)
+    True
+    >>> np.any(times > 3.)
+    True
+    >>> np.any(times < 2.)
+    True
+    >>> np.any((times > 2.) & (times < 3.))  # No times outside GTIs
+    False
+    >>> lc.counts[0] = -3.
+    >>> simulate_times(lc)  # Test with one negative value in the lc
+    Traceback (most recent call last):
+        ...
+    ValueError: simulate_times can only work with...
     """
+    return simulate_times_from_count_array(
+        lc.time, lc.counts, lc.gti, lc.dt, use_spline=use_spline)
 
-    times = lc.time
-    counts = lc.counts
 
-    bin_time = assign_value_if_none(bin_time, lc.dt)
-    n_bin = len(counts)
-    bin_start = 0
-    maxlc = np.max(counts)
-    intlc = maxlc * n_bin
-    n_events_predict = int(intlc + 10 * np.sqrt(intlc))
+def simulate_times_from_count_array(time, counts, gti, dt, use_spline=False):
+    """Simulate an event list, by using the inverse CDF method.
 
-    # Max number of events per chunk must be < 100000
-    events_per_bin_predict = n_events_predict / n_bin
+    + Assume that the light curve is a probability density (must be positive
+      definite)
 
+    + Calculate the CDF from the cumulative sum, and normalize it from 0 to 1
+
+    + Extract N random probability values from 0 to 1
+
+    + Find the CDF values corresponding to these N values
+
+    + Find the times corresponding to these N CDF values
+
+    Parameters
+    ----------
+    time: array-like
+    counts: array-like
+    gti: [[gti00, gti01], ..., [gtin0, gtin1]]
+    dt: float
+
+    Other Parameters
+    ----------------
+    use_spline : bool
+        Approximate the light curve with a spline to avoid binning effects
+
+    Returns
+    -------
+    times : array-like
+        Simulated photon arrival times
+
+    Examples
+    --------
+    >>> t = [0.5, 1.5, 3.5]
+    >>> c = [100] * 3
+    >>> gti = [[0, 2], [3, 4]]
+    >>> times = simulate_times_from_count_array(t, c, gti, 1, use_spline=True)
+    >>> np.all(np.diff(times) > 0)  # Output array is sorted
+    True
+    >>> np.all(times >= 0.)  # All times inside GTIs
+    True
+    >>> np.all(times <= 4.)
+    True
+    >>> np.any(times > 3.)
+    True
+    >>> np.any(times < 2.)
+    True
+    >>> np.any((times > 2.) & (times < 3.))  # No times outside GTIs
+    False
+    >>> c[0] = -3.
+    >>> simulate_times_from_count_array(t, c, gti, 1)  # Test with one negative value in the lc
+    Traceback (most recent call last):
+        ...
+    ValueError: simulate_times can only work with...
+    """
+    time = np.asarray(time)
+    counts = np.asarray(counts)
+    gti = np.asarray(gti)
+    kind = "linear"
     if use_spline:
-        max_bin = int(np.max([4, 1000000 / events_per_bin_predict]))
+        kind = "cubic"
 
-    else:
-        max_bin = int(np.max([4, 5000000 / events_per_bin_predict]))
+    if np.any(counts < 0):
+        raise ValueError(
+            "simulate_times can only work with positive-definite light curves"
+        )
 
-    ev_list = np.zeros(n_events_predict)
-    nev = 0
+    if len(gti) > 1:  # Work GTI by GTI, to avoid the spillover of events
+        all_events = []
+        start_bins, stop_bins = gti_border_bins(gti, time, dt=dt)
+        for i, (start, stop) in enumerate(zip(start_bins, stop_bins)):
+            new_events = simulate_times_from_count_array(
+                time[start:stop],
+                counts[start:stop],
+                [gti[i]],
+                dt,
+                use_spline=use_spline)
+            all_events.append(new_events)
+        return np.concatenate(all_events)
 
-    while bin_start < n_bin:
+    if len(counts) == 1:  # Corner case: a single light curve bin
+        dt = dt
+        t0 = time[0] - dt / 2
+        t1 = time[0] + dt / 2
+        N = counts[0]
+        return np.sort(np.random.uniform(t0, t1, N))
 
-        t0 = times[bin_start]
-        bin_stop = np.min([bin_start + max_bin, n_bin + 1])
+    tmin = gti[0, 0]
+    tmax = gti[-1, 1]
+    duration = (tmax - tmin)
+    phase_bins = np.copy(time)
+    phase_bins -= tmin
+    phase_bins /= duration
+    dph = dt / duration
 
-        lc_filt = counts[bin_start:bin_stop]
-        t_filt = times[bin_start:bin_stop]
-        length = t_filt[-1] - t_filt[0]
+    N = 10
+    counts = counts
+    # The concatenation below is needed because, when making the cubic
+    # interpolation, this helps flattening the solution at the start and end of
+    # each GTI.
+    counts = np.concatenate(([counts[0] / N] * N, counts[1:-1], [counts[-1] / N] * N))
+    phase_bins = np.concatenate(
+        (np.linspace(0, phase_bins[0] + dph / 2, N + 1)[:-1],
+         phase_bins[1:-1],
+         np.linspace(phase_bins[-1] - dph / 2, 1, N + 1)[:-1]))
+    n_events_predict = np.random.poisson(np.sum(counts))
 
-        n_bin_filt = len(lc_filt)
-        n_to_simulate = n_bin_filt * np.max(lc_filt)
-        safety_factor = 10
+    cdf = np.cumsum(counts, dtype=float)
+    cdf -= cdf[0]
+    cdf /= cdf[-1]
 
-        if n_to_simulate > 10000:
-            safety_factor = 4.
+    inv_cdf_func = sci.interp1d(
+        cdf,
+        phase_bins,
+        kind=kind)
 
-        n_to_simulate += safety_factor * np.sqrt(n_to_simulate)
-        n_to_simulate = int(np.ceil(n_to_simulate))
-        n_predict = ra.poisson(np.sum(lc_filt))
+    cdf_vals = np.sort(np.random.uniform(0, 1, n_events_predict))
+    times = inv_cdf_func(cdf_vals)
+    times *= duration
+    times += tmin
 
-        random_ts = ra.uniform(t_filt[0] - bin_time / 2,
-                               t_filt[-1] + bin_time / 2, n_to_simulate)
-
-        random_amps = ra.uniform(0, np.max(lc_filt), n_to_simulate)
-
-        if use_spline:
-            lc_spl = sci.splrep(t_filt, lc_filt, s=np.longdouble(0), k=1)
-            pts = sci.splev(random_ts, lc_spl)
-
-        else:
-            rough_bins = np.rint((random_ts - t0) / bin_time)
-            rough_bins = rough_bins.astype(int)
-            pts = lc_filt[rough_bins]
-
-        good = random_amps < pts
-        len1 = len(random_ts)
-        random_ts = random_ts[good]
-
-        len2 = len(random_ts)
-        random_ts = random_ts[:n_predict]
-        random_ts.sort()
-
-        new_nev = len(random_ts)
-        ev_list[nev:nev + new_nev] = random_ts[:]
-        nev += new_nev
-        bin_start += max_bin
-
-    # Discard all zero entries at the end
-    time = ev_list[:nev]
-    time.sort()
-
-    return time
+    return times

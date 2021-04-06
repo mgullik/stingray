@@ -228,7 +228,7 @@ class EventList(object):
 
         return EventList(time=times, gti=lc.gti)
 
-    def simulate_times(self, lc, use_spline=False, bin_time=None):
+    def simulate_times(self, lc, use_spline=False):
         """
         Randomly assign (simulate) photon arrival times to an :class:`EventList` from a
         :class:`stingray.Lightcurve` object, using the acceptance-rejection method.
@@ -253,8 +253,7 @@ class EventList(object):
         """
         from stingray.simulator.base import simulate_times
 
-        self.time = simulate_times(lc, use_spline=use_spline,
-                                   bin_time=bin_time)
+        self.time = simulate_times(lc, use_spline=use_spline)
         self.gti = lc.gti
         self.ncounts = len(self.time)
 
