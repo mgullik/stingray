@@ -19,7 +19,7 @@ class TestExcVarEnergySpectrum(object):
     def setup_class(cls):
         from ..simulator import Simulator
 
-        simulator = Simulator(0.1, 10000, rms=0.4, mean=200)
+        simulator = Simulator(0.1, 10000, rms=0.2, mean=200)
         test_lc = simulator.simulate(1)
         cls.test_ev1, cls.test_ev2 = EventList(), EventList()
         cls.test_ev1.simulate_times(test_lc)
@@ -137,7 +137,7 @@ class TestRMSEnergySpectrum(object):
     def setup_class(cls):
         from ..simulator import Simulator
 
-        simulator = Simulator(0.1, 1000, rms=0.4, mean=200)
+        simulator = Simulator(0.1, 1000, rms=0.2, mean=200)
         test_lc = simulator.simulate(1)
         test_ev1, test_ev2 = EventList(), EventList()
         test_ev1.simulate_times(test_lc)
@@ -154,10 +154,10 @@ class TestRMSEnergySpectrum(object):
     def test_correct_rms_values(self):
         # Assert that it is close to 0.4 (since we don't have infinite spectral
         # coverage, it will be a little less!)
-        assert np.allclose(self.rms.spectrum, 0.4, 0.05)
+        assert np.allclose(self.rms.spectrum, 0.2, 0.05)
 
     def test_correct_rms_errorbars(self):
-        assert np.allclose(self.rms.spectrum_error, 0.0014, atol=0.0001)
+        assert np.allclose(self.rms.spectrum_error, 0.0028, atol=0.0001)
 
     def test_rms_invalid_evlist_warns(self):
         ev = EventList(time=[], energy=[], gti=self.rms.events1.gti)
