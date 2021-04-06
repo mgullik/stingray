@@ -229,9 +229,10 @@ class EventList(object):
         return EventList(time=times, gti=lc.gti)
 
     def simulate_times(self, lc, use_spline=False):
-        """
-        Randomly assign (simulate) photon arrival times to an :class:`EventList` from a
-        :class:`stingray.Lightcurve` object, using the acceptance-rejection method.
+        """Simulate times from an input light curve.
+
+        Randomly simulate photon arrival times to an :class:`EventList` from a
+        :class:`stingray.Lightcurve` object, using the inverse CDF method.
 
         Parameters
         ----------
