@@ -1168,10 +1168,12 @@ def gti_border_bins(gtis, time, dt=None, epsilon=0.001):
         dt = np.median(np.diff(time))
 
     epsilon_times_dt = epsilon * dt
-    spectrum_start_bins = np.array([], dtype=int)
-    spectrum_stop_bins = np.array([], dtype=int)
+
+    spectrum_start_bins = []
+    spectrum_stop_bins = []
+
     for g in gtis:
-        good = (time - dt / 2 >= g[0]) & (time + dt / 2 <= g[1])
+        good = (time - dt / 2 >= g[0] - epsilon_times_dt) & (time + dt / 2 <= g[1] + epsilon_times_dt)
         t_good = time[good]
         if len(t_good) == 0:
             continue
@@ -1186,12 +1188,12 @@ def gti_border_bins(gtis, time, dt=None, epsilon=0.001):
         # so one has to add one bin
         if time[stopbin - 1] > (g[1] - dt / 2 + epsilon_times_dt):
             stopbin -= 1
-        spectrum_start_bins = \
-            np.append(spectrum_start_bins,
-                      [startbin])
-        spectrum_stop_bins = \
-            np.append(spectrum_stop_bins,
-                      [stopbin])
+        spectrum_start_bins.append([startbin])
+        spectrum_stop_bins.append([stopbin])
+
+    spectrum_start_bins = np.concatenate(spectrum_start_bins)
+    spectrum_stop_bins = np.concatenate(spectrum_stop_bins)
+
     assert len(spectrum_start_bins) > 0, \
         ("No GTIs are equal to or longer than chunk_length.")
     return spectrum_start_bins, spectrum_stop_bins
