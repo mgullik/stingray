@@ -181,7 +181,7 @@ class Powerspectrum(Crossspectrum):
 
         Other parameters
         ----------------
-        white_noise_offset : float, default 0
+        white_noise_offset : float, default 2
             This is the white noise level, in Leahy normalization. In the ideal
             case, this is 2. Dead time and other instrumental effects can alter
             it. The user can fit the white noise level outside this function
@@ -208,8 +208,16 @@ class Powerspectrum(Crossspectrum):
             powers_leahy = \
                 self.unnorm_power[minind:maxind].real * 2 / nphots
 
-        rms = np.sqrt(np.sum(powers_leahy - white_noise_offset) / nphots)
-        rms_err = self._rms_error(powers_leahy)
+        rms_squared = np.sum(powers_leahy - white_noise_offset) / nphots
+        rms = np.sqrt(rms_squared)
+
+        T = self.dt * self.n 
+        white_noise_offset_frac_norm = white_noise_offset * T / nphots #renormalise the white noise level
+        rms_noise_squared = white_noise_offset_frac_norm * (max_freq - min_freq) #rms of the noise
+        rms_err_squared = (2 * rms_squared * rms_noise_squared + rms_noise_squared**2) / \
+            (2 * self.m * rms_squared)
+        rms_err = np.sqrt(rms_err_squared)
+        # rms_err = self._rms_error(powers_leahy)
 
         return rms, rms_err
 
