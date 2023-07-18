@@ -350,3 +350,34 @@ class TestAll(object):
         assert np.allclose(maxstatbin, frequencies[minbin], atol=0.1 / self.tseg)
         maxfdot = fdot.flatten()[np.argmax(stat)]
         assert np.allclose(maxfdot, 0.0, atol=0.1 / self.tseg)
+
+    def test_z_n_search_weights_averaged(self):
+        """Test pulse phase calculation, frequency only."""
+        frequencies = np.arange(9.8, 9.99, 0.1 / self.tseg)
+        freq, stat = z_n_search(
+            self.times, frequencies, nbin=44, nharm=1, weights=self.counts, weight_averaged=True
+        )
+
+        minbin = np.argmin(np.abs(frequencies - self.pulse_frequency))
+        maxstatbin = freq[np.argmax(stat)]
+        assert np.allclose(maxstatbin, frequencies[minbin], atol=0.1 / self.tseg)
+
+    def test_z_n_search_weights_averaged_fdot(self):
+        """Test pulse phase calculation, frequency only."""
+        frequencies = np.arange(9.8, 9.99, 0.1 / self.tseg)
+        fdots = [-0.1, 0, 0.1]
+        freq, fdot, stat = z_n_search(
+            self.times,
+            frequencies,
+            nbin=44,
+            nharm=1,
+            weights=self.counts,
+            fdots=fdots,
+            weight_averaged=True,
+        )
+
+        minbin = np.argmin(np.abs(frequencies - self.pulse_frequency))
+        maxstatbin = freq.flatten()[np.argmax(stat)]
+        assert np.allclose(maxstatbin, frequencies[minbin], atol=0.1 / self.tseg)
+        maxfdot = fdot.flatten()[np.argmax(stat)]
+        assert np.allclose(maxfdot, 0.0, atol=0.1 / self.tseg)

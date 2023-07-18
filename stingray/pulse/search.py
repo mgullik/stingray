@@ -28,7 +28,14 @@ def _pulse_phase_fast(time, f, fdot, buffer_array):
 
 
 def _folding_search(
-    stat_func, times, frequencies, segment_size=np.inf, use_times=False, fdots=0, weight_averaged=False, **kwargs
+    stat_func,
+    times,
+    frequencies,
+    segment_size=np.inf,
+    use_times=False,
+    fdots=0,
+    weight_averaged=False,
+    **kwargs
 ):
     fgrid, fdgrid = np.meshgrid(
         np.asarray(frequencies).astype(np.float64), np.asarray(fdots).astype(np.float64)
@@ -57,8 +64,10 @@ def _folding_search(
                             kwargs_copy[key] = kwargs[key][good]
                         else:
                             kwargs_copy[key] = kwargs[key]
-                    # stats[i, j] += stat_func(ts, f, fd, **kwargs_copy)
-                    stats[i, j] += stat_func(ts, f, fd, weight_averaged, **kwargs_copy)
+                    if weight_averaged:
+                        stats[i, j] += stat_func(ts, f, fd, weight_averaged, **kwargs_copy)
+                    else:
+                        stats[i, j] += stat_func(ts, f, fd, **kwargs_copy)
                 else:
                     phases = _pulse_phase_fast(ts, f, fd, buffer)
                     stats[i, j] += stat_func(phases)
@@ -303,8 +312,8 @@ def z_n_search(
         if the times array contains the time bins of a light curve
 
     weight_averaged: bool
-        default is False, if True it computes the pulse profile dividing the 
-        weighted pulse profile by the number of events. If weights is not specified 
+        default is False, if True it computes the pulse profile dividing the
+        weighted pulse profile by the number of events. If weights is not specified
         the command is ignored.
 
     Returns
@@ -325,7 +334,7 @@ def z_n_search(
 
         def stat_fun(t, f, fd=0, weight_averaged=False, **kwargs):
             if weight_averaged:
-                bins, profile, profile_err = fold_events(t, f, fd, nbin=nbin, **kwargs, mode = "ave")
+                bins, profile, profile_err = fold_events(t, f, fd, nbin=nbin, **kwargs, mode="ave")
                 return z_n(profile, err=profile_err, n=nharm, datatype="gauss")
             return z_n(fold_events(t, f, fd, nbin=nbin, **kwargs)[1], n=nharm, datatype="binned")
 

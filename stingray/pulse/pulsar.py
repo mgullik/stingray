@@ -254,7 +254,7 @@ def fold_events(times, *frequency_derivatives, average=False, **opts):
         Whether to calculate the epoch folding or phase dispersion
         minimization folded profile. For "ef", it calculates the (weighted)
         sum of the data points in each phase bin, for "pdm", the variance
-        in each phase bin, for "ave" it calculates the averaged count 
+        in each phase bin, for "ave" it calculates the averaged count
         in each phase bin
 
     Returns
@@ -343,15 +343,15 @@ def fold_events(times, *frequency_derivatives, average=False, **opts):
                 + " `weights` attribute must be set to fluxes!"
             )
         raw_profile, bins, bin_idx = scipy.stats.binned_statistic(
-        phases, weights, statistic=np.mean, bins=np.linspace(0, 1, nbin + 1)
-            )
+            phases, weights, statistic=np.mean, bins=np.linspace(0, 1, nbin + 1)
+        )
         raw_profile_err = np.sqrt(np.std(raw_profile))
-    
+
         if expocorr:
             expo_norm = phase_exposure(start_phase, stop_phase, 1, nbin, gti=gti_phases)
             simon("For exposure != 1, the uncertainty might be incorrect")
             # print('expo_norm', expo_norm)
-    
+
         else:
             expo_norm = 1
 
