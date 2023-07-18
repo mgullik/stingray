@@ -213,7 +213,7 @@ def phase_exposure(start_time, stop_time, period, nbin=16, gti=None):
     return expo / np.max(expo)
 
 
-def fold_events(times, *frequency_derivatives, **opts):
+def fold_events(times, *frequency_derivatives, average=False, **opts):
     """Epoch folding with exposure correction.
 
     By default, the keyword `times` accepts a list of
@@ -250,10 +250,11 @@ def fold_events(times, *frequency_derivatives, **opts):
         Correct each bin for exposure (use when the period of the pulsar is
         comparable to that of GTIs)
 
-    mode : str, ["ef", "pdm"], default "ef"
+    mode : str, ["ef", "pdm", "ave"], default "ef"
         Whether to calculate the epoch folding or phase dispersion
         minimization folded profile. For "ef", it calculates the (weighted)
         sum of the data points in each phase bin, for "pdm", the variance
+        in each phase bin, for "ave" it calculates the averaged count 
         in each phase bin
 
     Returns
@@ -300,8 +301,11 @@ def fold_events(times, *frequency_derivatives, **opts):
 
     if mode == "ef":
         raw_profile, bins = np.histogram(phases, bins=np.linspace(0, 1, nbin + 1), weights=weights)
-        # TODO: this is wrong. Need to extend this to non-1 weights
-        raw_profile_err = np.sqrt(raw_profile)
+        # TODO: this is wrong. Need to extend this to non-1 weights, put standard deviation of the value of the single bin
+        if np.allclose(weights, 1.0):
+            raw_profile_err = np.sqrt(raw_profile)
+        else:
+            raw_profile_err = np.sqrt(np.std(raw_profile))
 
         if expocorr:
             expo_norm = phase_exposure(start_phase, stop_phase, 1, nbin, gti=gti_phases)
@@ -331,6 +335,28 @@ def fold_events(times, *frequency_derivatives, **opts):
 
         # dummy array for the error, which we don't have for the variance
         raw_profile_err = np.zeros_like(raw_profile)
+
+    elif mode == "ave":
+        if np.allclose(weights, 1.0):
+            raise ValueError(
+                "Can only calculate 'ave' for binned light curves!"
+                + " `weights` attribute must be set to fluxes!"
+            )
+        raw_profile, bins, bin_idx = scipy.stats.binned_statistic(
+        phases, weights, statistic=np.mean, bins=np.linspace(0, 1, nbin + 1)
+            )
+        raw_profile_err = np.sqrt(np.std(raw_profile))
+    
+        if expocorr:
+            expo_norm = phase_exposure(start_phase, stop_phase, 1, nbin, gti=gti_phases)
+            simon("For exposure != 1, the uncertainty might be incorrect")
+            # print('expo_norm', expo_norm)
+    
+        else:
+            expo_norm = 1
+
+        raw_profile = raw_profile / expo_norm
+        raw_profile_err = raw_profile_err / expo_norm
 
     else:
         raise ValueError(
