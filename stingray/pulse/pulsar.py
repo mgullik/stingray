@@ -213,7 +213,7 @@ def phase_exposure(start_time, stop_time, period, nbin=16, gti=None):
     return expo / np.max(expo)
 
 
-def fold_events(times, *frequency_derivatives, average=False, **opts):
+def fold_events(times, *frequency_derivatives, **opts):
     """Epoch folding with exposure correction.
 
     By default, the keyword `times` accepts a list of
@@ -345,7 +345,12 @@ def fold_events(times, *frequency_derivatives, average=False, **opts):
         raw_profile, bins, bin_idx = scipy.stats.binned_statistic(
             phases, weights, statistic=np.mean, bins=np.linspace(0, 1, nbin + 1)
         )
-        raw_profile_err = np.sqrt(np.std(raw_profile))
+        raw_profile_err, _, _ = scipy.stats.binned_statistic(
+            phases, weights, statistic=np.std, bins=np.linspace(0, 1, nbin + 1)
+        )
+        # print(raw_profile, raw_profile_err, np.std(np.diff(raw_profile)))
+        raw_profile_err = np.std(np.diff(raw_profile))
+        # raw_profile_err = np.std(raw_profile)
 
         if expocorr:
             expo_norm = phase_exposure(start_phase, stop_phase, 1, nbin, gti=gti_phases)

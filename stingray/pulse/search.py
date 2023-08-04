@@ -335,7 +335,10 @@ def z_n_search(
         def stat_fun(t, f, fd=0, weight_averaged=False, **kwargs):
             if weight_averaged:
                 bins, profile, profile_err = fold_events(t, f, fd, nbin=nbin, **kwargs, mode="ave")
+                # print('z_n gauss type')
                 return z_n(profile, err=profile_err, n=nharm, datatype="gauss")
+            # print('z_n binned type')
+            # return z_n(fold_events(t, f, fd, nbin=nbin, **kwargs)[1], n=nharm, datatype="binned")
             return z_n(fold_events(t, f, fd, nbin=nbin, **kwargs)[1], n=nharm, datatype="binned")
 
         return _folding_search(
